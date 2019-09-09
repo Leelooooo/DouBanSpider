@@ -13,9 +13,10 @@ from openpyxl import Workbook
 importlib.reload(sys)
 
 # Some User Agents
-hds = [{'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'}, {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.12 '
-                  'Safari/535.11'},
+hds = [{'User-Agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36'},
+       {'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20100101 Firefox/23.0'},
+       {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'},
+       {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.12 ''Safari/535.11'},
        {'User-Agent': 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)'}]
 
 
@@ -26,7 +27,7 @@ def book_spider(book_tag):
 
     while 1:
         # url='http://www.douban.com/tag/%E5%B0%8F%E8%AF%B4/book?start=0' # For Test
-        url = 'http://www.douban.com/   tag/' + urllib.parse.quote(book_tag) + '/book?start=' + str(page_num * 15)
+        url = 'http://www.douban.com/tag/' + urllib.parse.quote(book_tag) + '/book?start=' + str(page_num * 15)
         time.sleep(np.random.rand() * 5)
 
         # Last Version
@@ -34,7 +35,7 @@ def book_spider(book_tag):
             req = urllib.request.Request(url, headers=hds[page_num % len(hds)])
             source_code = urllib.request.urlopen(req).read()
             plain_text = str(source_code)
-        except (urllib.HTTPError, urllib.URLError) as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             print(e)
             continue
 
@@ -89,7 +90,7 @@ def get_people_num(url):
         req = urllib.Request(url, headers=hds[np.random.randint(0, len(hds))])
         source_code = urllib.urlopen(req).read()
         plain_text = str(source_code)
-    except (urllib.HTTPError, urllib.URLError) as e:
+    except (urllib.error.HTTPError, urllib.error.URLError) as e:
         print(e)
     soup = BeautifulSoup(plain_text)
     people_num = soup.find('div', {'class': 'rating_sum'}).findAll('span')[1].string.strip()
@@ -106,15 +107,20 @@ def do_spider(book_tag_lists):
 
 
 def print_book_lists_excel(book_lists, book_tag_lists):
+
     wb = Workbook(write_only=True)
     ws = []
     for i in range(len(book_tag_lists)):
-        ws.append(wb.create_sheet(title=book_tag_lists[i].decode()))  # utf8->unicode
+        ws.append(wb.create_sheet(title=book_tag_lists[i]))  # utf8->unicode
     for i in range(len(book_tag_lists)):
         ws[i].append(['序号', '书名', '评分', '评价人数', '作者', '出版社'])
         count = 1
         for bl in book_lists[i]:
-            ws[i].append([count, bl[0], float(bl[1]), int(bl[2]), bl[3], bl[4]])
+            t=eval(repr(bl[0]).replace('\\\\', '\\')).encode('raw_unicode_escape').decode()
+            a=eval(repr(bl[3]).replace('\\\\', '\\')).encode('raw_unicode_escape').decode()
+            p=eval(repr(bl[4]).replace('\\\\', '\\')).encode('raw_unicode_escape').decode()
+
+            ws[i].append([count, t, float(bl[1]), int(bl[2]), a, p])
             count += 1
     save_path = 'book_list'
     for i in range(len(book_tag_lists)):
@@ -133,7 +139,7 @@ if __name__ == '__main__':
     # book_tag_lists = ['商业','理财','管理']
     # book_tag_lists = ['名著']
     # book_tag_lists = ['科普','经典','生活','心灵','文学']
-    # book_tag_lists = ['科幻','思维','金融']
-    book_tag_lists = ['个人管理', '时间管理', '投资', '文化', '宗教']
+    book_tag_lists = ['科幻','思维','金融']
+    # book_tag_lists = ['个人管理', '时间管理', '投资', '文化', '宗教']
     book_lists = do_spider(book_tag_lists)
     print_book_lists_excel(book_lists, book_tag_lists)
